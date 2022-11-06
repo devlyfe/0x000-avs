@@ -1,0 +1,49 @@
+{
+    "name": "0x000/avs",
+    "description": "Avs card checker.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.0",
+        "fakerphp/faker": "^1.20",
+        "freelancehunt/php-credit-card-validator": "^3.2",
+        "guzzlehttp/guzzle": "^7.4",
+        "illuminate/http": "^9.0",
+        "ivopetkov/html5-dom-document-php": "^2.3",
+        "laravel-zero/framework": "^9.2",
+        "nunomaduro/termwind": "^1.14",
+        "spatie/data-transfer-object": "^3.9",
+        "spatie/fork": "^1.1",
+        "sunra/php-simple-html-dom-parser": "^1.5"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.2",
+        "mockery/mockery": "^1.4.4",
+        "pestphp/pest": "^1.21.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "bin": [
+        "avs"
+    ]
+}
