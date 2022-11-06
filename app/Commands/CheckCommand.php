@@ -6,6 +6,7 @@ use App\Enums\Status;
 use App\Services\Avs;
 use App\Supports\CardValidate;
 use LaravelZero\Framework\Commands\Command;
+use PhpParser\Node\Stmt\TryCatch;
 use Spatie\Fork\Fork;
 
 use function Termwind\render;
@@ -20,7 +21,7 @@ class CheckCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'check {--speed : Request ratio}';
+    protected $signature = 'check {--list= : your list txt} {--speed= : Request ratio}';
 
     /**
      * The description of the command.
@@ -36,25 +37,25 @@ class CheckCommand extends Command
      */
     public function handle()
     {
-        $lists = [
-            '4060320365641142|07|27|102',
-            '4342582025783636|05|25|362',
-            '5112710300142583|10|24|033',
-            '5143773636747908|05|26|806',
-            '4430470022842659|06|24|326',
-            '4879170019292706|10|26|923',
-            '4342562440772901|02|26|627',
-            '4403934467322223|05|28|498',
-            '4403932464325124|02|26|671'
-        ];
+        $listFile   = $this->option('list') ?? $this->ask('Your list?', 'list.txt');
+        $speed      = $this->option('speed') ?? $this->ask('Speed?', 10);
+        $speed      = (int) $speed;
 
-        $speed = $this->option('speed');
-        if (!$speed) {
-            $speed = $this->ask('input speed', 10);
+        if (!file_exists(getcwd() . '/' . $listFile)) {
+            terminal()->clear();
+            render(<<<HTML
+                <div class="text-red-500 mb-1 ml-1">
+                    Cannot get {$listFile}, please insert a valid path to your list.
+                </div>
+            HTML);
         }
 
-        $chunks = array_chunk($lists, $speed);
-        foreach ($chunks as $chunk) {
+        $lists = file($listFile);
+        $lists = collect($lists)
+            ->map(fn ($list) => str($list)->trim()->toString())
+            ->toArray();
+
+        foreach (array_chunk($lists, $speed) as $chunk) {
             $jobs = [];
 
             foreach ($chunk as $card) {
@@ -64,32 +65,41 @@ class CheckCommand extends Command
 
                 $card = $this->parseCard($card);
                 $jobs[] = function () use ($card) {
-                    $avs        = new Avs($card);
-                    $result     = $avs();
+                    $format = collect($card->toArray())->except(['type'])->toArray();
+                    $format = implode(':', $format);
 
-                    /**
-                     * @var Status
-                     */
-                    $status = $result['result'];
-                    $format = implode(' ', $card->toArray());
+                    try {
+                        $avs        = new Avs($card);
+                        $result     = $avs();
 
-                    if (!is_dir('results')) {
-                        @mkdir('results');
-                    }
+                        /**
+                         * @var Status
+                         */
+                        $status = $result['result'];
+                        $reason = strtoupper($result['reason'] ?? '');
 
-                    file_put_contents(
-                        'results/' . $status->value . '.txt',
-                        $format . PHP_EOL,
-                        FILE_APPEND
-                    );
+                        if (!is_dir('results')) {
+                            @mkdir('results');
+                        }
 
-                    if ($status != Status::LIVE) {
-                        return render(<<<HTML
-                            <div class="text-red-500">{$format}</div>
+                        file_put_contents(
+                            'results/' . $status->value . '.txt',
+                            $format . ':' . $reason . PHP_EOL,
+                            FILE_APPEND
+                        );
+
+                        if ($status != Status::LIVE) {
+                            return render(<<<HTML
+                                <div class="text-red-500">{$format} {$reason}</div>
+                            HTML);
+                        }
+
+                        return $this->info($format);
+                    } catch (\Throwable $th) {
+                        render(<<<HTML
+                            <div class="text-red-500">{$format} {$th->getMessage()}</div>
                         HTML);
                     }
-
-                    return $this->info($format);
                 };
             }
 
@@ -103,5 +113,14 @@ class CheckCommand extends Command
             terminal()->clear();
             $this->info('Sleep for 3 second...');
         }
+
+        terminal()->clear();
+        render(
+            <<<HTML
+                <div class="text-green-500">
+                    Checking done.
+                </div>
+            HTML
+        );
     }
 }

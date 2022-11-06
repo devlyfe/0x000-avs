@@ -160,6 +160,13 @@ class Avs
                 ];
             }
 
+            if (str($checkoutResultMessage)->contains('re-enter')) {
+                return [
+                    'result'    =>  Status::RECHECK,
+                    'reason'    =>  $checkoutResultMessage
+                ];
+            }
+
             return [
                 'result'    =>  Status::DIE,
                 'reason'    =>  $checkoutResultMessage
